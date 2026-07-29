@@ -1,94 +1,137 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Comentario Anclado TikTok</title>
-  <script src="/socket.io/socket.io.js"></script>
+  <meta charset="UTF-8" />
+  <title>TikTok Vouch Overlay</title>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Proxima+Nova:wght@400;600;700&family=Inter:wght@400;600;700&display=swap');
+
     body {
       margin: 0;
-      padding: 20px;
-      background: transparent;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      padding: 0;
+      background-color: transparent;
+      font-family: 'Proxima Nova', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
       overflow: hidden;
     }
-    #pinned-container {
+
+    #vouch-container {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
       display: flex;
-      align-items: center;
-      gap: 12px;
-      background: rgba(18, 18, 18, 0.85);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      border-left: 5px solid #fe2c55;
+      align-items: flex-start;
+      gap: 8px;
+      background: rgba(0, 0, 0, 0.45);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      padding: 6px 12px 6px 8px;
       border-radius: 12px;
-      padding: 12px 18px;
-      max-width: 450px;
-      color: #fff;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      max-width: 320px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
       opacity: 0;
-      transform: translateY(20px);
-      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      transform: translateY(10px);
+      transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
     }
-    #pinned-container.show {
+
+    #vouch-container.active {
       opacity: 1;
       transform: translateY(0);
     }
+
     .avatar {
-      width: 48px;
-      height: 48px;
+      width: 32px;
+      height: 32px;
       border-radius: 50%;
       object-fit: cover;
-      border: 2px solid #25f4ee;
+      flex-shrink: 0;
     }
-    .content {
+
+    .content-box {
       display: flex;
       flex-direction: column;
+      justify-content: center;
+      line-height: 1.25;
     }
-    .badge {
-      font-size: 0.7rem;
-      font-weight: bold;
-      color: #fe2c55;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 2px;
+
+    .header-line {
+      display: flex;
+      align-items: center;
+      gap: 4px;
     }
+
     .username {
-      font-size: 0.95rem;
-      font-weight: 700;
-      color: #25f4ee;
+      color: rgba(255, 255, 255, 0.75);
+      font-weight: 600;
+      font-size: 13px;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
     }
-    .comment {
-      font-size: 0.9rem;
-      color: #e0e0e0;
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 11px;
+      font-weight: 600;
+      background: rgba(255, 255, 255, 0.15);
+      padding: 1px 5px;
+      border-radius: 4px;
+    }
+
+    .pin-icon {
+      width: 10px;
+      height: 10px;
+      fill: currentColor;
+    }
+
+    .comment-text {
+      color: #ffffff;
+      font-size: 13.5px;
+      font-weight: 400;
       margin-top: 2px;
       word-break: break-word;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
     }
   </style>
 </head>
 <body>
 
-  <div id="pinned-container">
-    <img id="avatar" class="avatar" src="https://via.placeholder.com/150" alt="Avatar">
-    <div class="content">
-      <span class="badge">📌 Comentario Anclado</span>
-      <span id="username" class="username">@Usuario</span>
-      <span id="comment" class="comment">¡Escribe tu comentario en el chat!</span>
+  <div id="vouch-container">
+    <img id="avatar" class="avatar" src="" alt="Avatar" />
+    <div class="content-box">
+      <div class="header-line">
+        <span id="username" class="username"></span>
+        <span class="badge">
+          <svg class="pin-icon" viewBox="0 0 24 24">
+            <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z"/>
+          </svg>
+          Vouch
+        </span>
+      </div>
+      <div id="comment" class="comment-text"></div>
     </div>
   </div>
 
+  <script src="/socket.io/socket.io.js"></script>
   <script>
     const socket = io();
-    const container = document.getElementById('pinned-container');
-    const avatarImg = document.getElementById('avatar');
+    const container = document.getElementById('vouch-container');
+    const avatarEl = document.getElementById('avatar');
     const usernameEl = document.getElementById('username');
     const commentEl = document.getElementById('comment');
 
-    socket.on('pinned_comment', (data) => {
-      usernameEl.textContent = '@' + data.nickname;
-      commentEl.textContent = data.comment;
-      if (data.avatar) avatarImg.src = data.avatar;
+    socket.on('show_pin', (data) => {
+      if (!data) return;
 
-      container.classList.add('show');
+      avatarEl.src = data.avatar || 'https://www.tiktok.com/favicon.ico';
+      usernameEl.textContent = data.username || 'Usuario';
+      commentEl.textContent = data.comment || '';
+
+      container.classList.add('active');
+    });
+
+    socket.on('hide_pin', () => {
+      container.classList.remove('active');
     });
   </script>
 </body>
