@@ -17,19 +17,19 @@ app.get('/', (req, res) => {
 });
 
 // Endpoint para recibir la Webhook de TikFinity
+// Endpoint para recibir la Webhook de TikFinity
 app.post('/webhook', (req, res) => {
     const data = req.body;
     console.log('Webhook recibida:', data);
-    console.log('Query recibida:', req.query);
 
-  // Emitir evento a la overlay en tiempo real
-  io.emit('pinned_comment', {
-    nickname: data.nickname || data.uniqueId || 'Usuario',
-    comment: data.comment || data.text || '',
-    avatar: data.profilePictureUrl || data.avatar || ''
-  });
+    // Emitir evento a la overlay en tiempo real
+    io.emit('pinned_comment', {
+        nickname: data.nickname || data.username || data.value1 || 'Usuario',
+        comment: data.content || data.commandParams || data.value2 || '',
+        avatar: data.profilePictureUrl || data.avatar || 'https://www.tiktok.com/favicon.ico'
+    });
 
-  res.status(200).send({ status: 'success' });
+    res.status(200).send({ status: 'success' });
 });
 
 const PORT = process.env.PORT || 3000;
