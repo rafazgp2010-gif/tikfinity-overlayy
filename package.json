@@ -1,7 +1,7 @@
 {
-  "name": "tikfinity-overlayy",
+  "name": "tikfinity-overlay",
   "version": "1.0.0",
-  "description": "",
+  "description": "Overlay de comentarios anclados para TikTok Live vía TikFinity",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
