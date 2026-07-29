@@ -18,8 +18,9 @@ app.get('/', (req, res) => {
 
 // Endpoint para recibir la Webhook de TikFinity
 app.post('/webhook', (req, res) => {
-  const data = req.body;
-  console.log('Webhook recibida:', data);
+    const data = req.body;
+    console.log('Webhook recibida:', data);
+    console.log('Query recibida:', req.query);
 
   // Emitir evento a la overlay en tiempo real
   io.emit('pinned_comment', {
