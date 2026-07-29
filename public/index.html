@@ -2,125 +2,120 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TikTok Live Chat Overlay</title>
+  <script src="/socket.io/socket.io.js"></script>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Proxima+Nova:wght@400;600;700&display=swap');
-
     body {
-      font-family: 'Proxima Nova', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
-      background-color: transparent; /* Transparente para OBS */
-      color: #ffffff;
       margin: 0;
       padding: 20px;
+      background: transparent;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       overflow: hidden;
     }
 
-    #chat-container {
+    #container {
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 10px;
     }
 
-    .chat-row {
+    .chat-card {
       display: flex;
       align-items: center;
-      gap: 10px;
-      background: rgba(0, 0, 0, 0.55); /* Fondo oscuro transparente */
-      backdrop-filter: blur(4px);
-      padding: 8px 12px;
+      background: rgba(18, 18, 18, 0.85);
       border-radius: 12px;
-      width: fit-content;
-      max-width: 85%;
-      animation: tiktokFadeIn 0.25s ease-out;
+      padding: 10px 14px;
+      color: white;
+      max-width: 380px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+      backdrop-filter: blur(5px);
+      animation: fadeIn 0.4s ease-out;
     }
 
-    @keyframes tiktokFadeIn {
+    @keyframes fadeIn {
       from { opacity: 0; transform: translateY(10px); }
       to { opacity: 1; transform: translateY(0); }
     }
 
     .avatar {
-      width: 36px;
-      height: 36px;
+      width: 44px;
+      height: 44px;
       border-radius: 50%;
+      margin-right: 12px;
       object-fit: cover;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      flex-shrink: 0;
+      border: 2px solid #fe2c55;
     }
 
-    .content-box {
+    .content {
       display: flex;
       flex-direction: column;
-      gap: 2px;
     }
 
-    .user-header {
+    .header-info {
       display: flex;
       align-items: center;
       gap: 6px;
+      margin-bottom: 2px;
     }
 
     .username {
-      font-size: 14px;
       font-weight: 700;
-      color: rgba(255, 255, 255, 0.85);
-      line-height: 1.2;
+      font-size: 14px;
+      color: #ffffff;
     }
 
     .badge {
-      background: rgba(255, 255, 255, 0.25);
-      color: #ffffff;
-      font-size: 11px;
-      font-weight: 600;
-      padding: 1px 6px;
+      background-color: #fe2c55;
+      color: white;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 6px;
       border-radius: 4px;
-      display: inline-flex;
-      align-items: center;
+      text-transform: uppercase;
     }
 
     .message {
-      font-size: 15px;
-      font-weight: 700;
-      color: #ffffff;
-      word-break: break-word;
-      line-height: 1.2;
+      font-size: 13px;
+      color: #e1e1e1;
     }
   </style>
-  <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
-  <div id="chat-container"></div>
+  <div id="container"></div>
 
   <script>
     const socket = io();
-    const container = document.getElementById('chat-container');
 
-    socket.on('tikfinity-event', (data) => {
-      const row = document.createElement('div');
-      row.className = 'chat-row';
-
-      const user = data.nickname || data.username || 'Usuario';
-      const avatarUrl = data.profilePictureUrl || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_normal.png';
-
-      // Estructura idéntica a la imagen de TikTok Live
-      row.innerHTML = `
-        <img class="avatar" src="${avatarUrl}" onerror="this.src='https://abs.twimg.com/sticky/default_profile_images/default_profile_normal.png'" />
-        <div class="content-box">
-          <div class="user-header">
-            <span class="username">${user}</span>
+    socket.on('new-webhook', (data) => {
+      console.log('Evento recibido:', data);
+      
+      const container = document.getElementById('container');
+      
+      // Extraer datos o usar valores por defecto de la prueba de TikFinity
+      const avatarUrl = data.avatar || data.profile_picture || 'https://www.tiktok.com/favicon.ico';
+      const username = data.nickname || data.username || data.user || 'Usuario';
+      
+      const card = document.createElement('div');
+      card.className = 'chat-card';
+      card.innerHTML = `
+        <img class="avatar" src="${avatarUrl}" alt="avatar" onerror="this.src='https://www.tiktok.com/favicon.ico'">
+        <div class="content">
+          <div class="header-info">
+            <span class="username">${username}</span>
             <span class="badge">📌 Anclado</span>
           </div>
           <div class="message">Vouch</div>
         </div>
       `;
 
-      container.appendChild(row);
+      container.appendChild(card);
 
-      // Limitar a máximo 6 mensajes en pantalla
-      if (container.children.length > 6) {
-        container.removeChild(container.firstChild);
-      }
+      // Ocultar la tarjeta automáticamente después de 10 segundos
+      setTimeout(() => {
+        card.style.transition = 'opacity 0.5s ease';
+        card.style.opacity = '0';
+        setTimeout(() => card.remove(), 500);
+      }, 10000);
     });
   </script>
 </body>
