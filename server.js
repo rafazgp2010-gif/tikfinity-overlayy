@@ -5,79 +5,139 @@ const { Server } = require('socket.io');
 const app = express();
 const server = http.createServer(app);
 
-// Inicializamos el conector de tiempo real (Socket.io)
 const io = new Server(server, {
   cors: { origin: "*" }
 });
 
-// Permite que el servidor entienda datos JSON que manda TikFinity
 app.use(express.json());
 
-// -------------------------------------------------------------
-// RUTA 1: Lo que se muestra cuando abres la URL en el navegador
-// -------------------------------------------------------------
+// 1. HTML con diseño idéntico al chat de TikTok Live
 app.get('/', (req, res) => {
   res.send(`
     <!DOCTYPE html>
     <html lang="es">
     <head>
       <meta charset="UTF-8">
-      <title>TikFinity Overlay</title>
+      <title>TikTok Live Chat Overlay</title>
       <style>
+        @import url('https://fonts.googleapis.com/css2?family=Proxima+Nova:wght@400;600;700&display=swap');
+
         body {
-          font-family: Arial, sans-serif;
-          background-color: transparent; /* Transparente para OBS */
-          color: #fff;
+          font-family: 'Proxima Nova', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+          background-color: transparent;
+          color: #ffffff;
           margin: 0;
           padding: 20px;
+          display: flex;
+          flex-direction: column-reverse; /* Los mensajes nuevos entran abajo como en TikTok */
+          gap: 8px;
+          overflow: hidden;
         }
-        .alert-card {
-          background: rgba(15, 15, 20, 0.9);
-          border-left: 5px solid #00f2fe;
-          padding: 14px 18px;
-          margin-bottom: 10px;
-          border-radius: 8px;
-          font-size: 18px;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-          animation: popIn 0.3s ease-out;
+
+        .chat-row {
+          display: flex;
+          align-items: flex-start;
+          gap: 10px;
+          background: rgba(0, 0, 0, 0.45); /* Fondo oscuro transparente */
+          backdrop-filter: blur(4px);
+          padding: 8px 12px;
+          border-radius: 14px;
+          width: fit-content;
+          max-width: 85%;
+          animation: tiktokFadeIn 0.25s ease-out;
         }
-        @keyframes popIn {
-          from { opacity: 0; transform: translateY(-15px) scale(0.95); }
-          to { opacity: 1; transform: translateY(0) scale(1); }
+
+        @keyframes tiktokFadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        .avatar {
+          width: 36px;
+          height: 36px;
+          border-radius: 50%;
+          object-fit: cover;
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          flex-shrink: 0;
+        }
+
+        .content-box {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+
+        .user-header {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+
+        .username {
+          font-size: 15px;
+          font-weight: 700;
+          color: rgba(255, 255, 255, 0.9);
+          line-height: 1.2;
+        }
+
+        .badge {
+          background: rgba(255, 255, 255, 0.25);
+          color: #ffffff;
+          font-size: 11px;
+          font-weight: 600;
+          padding: 1px 6px;
+          border-radius: 4px;
+          display: inline-flex;
+          align-items: center;
+          gap: 3px;
+        }
+
+        .badge.host {
+          background: #fe2c55; /* Rojo típico de TikTok */
+        }
+
+        .message {
+          font-size: 15px;
+          font-weight: 600;
+          color: #ffffff;
+          word-break: break-word;
+          line-height: 1.3;
         }
       </style>
-      <!-- Cargamos el cliente de Socket.io -->
       <script src="/socket.io/socket.io.js"></script>
     </head>
     <body>
-      <div id="overlay-container"></div>
+      <div id="chat-container"></div>
 
       <script>
         const socket = io();
-        const container = document.getElementById('overlay-container');
+        const container = document.getElementById('chat-container');
 
-        // Escuchamos el evento cuando el servidor nos avise que llegó algo
         socket.on('tikfinity-event', (data) => {
-          console.log('Evento recibido en vivo:', data);
-          
-          const card = document.createElement('div');
-          card.className = 'alert-card';
-          
-          // Si el evento contiene un regalo
-          if (data.giftName) {
-            card.innerHTML = \`🎁 <strong>\${data.nickname || data.username}</strong> envió <strong>\${data.repeatCount || 1}x \${data.giftName}</strong>!\`;
-          } 
-          // Si es un mensaje o prueba
-          else if (data.content) {
-            card.innerHTML = \`💬 <strong>\${data.nickname || data.username}</strong>: \${data.content}\`;
-          } 
-          // Cualquier otro formato
-          else {
-            card.innerHTML = \`✨ <strong>\${data.nickname || data.username}</strong>: \${data.value2 || 'Evento recibido'}\`;
-          }
+          const row = document.createElement('div');
+          row.className = 'chat-row';
 
-          // Agregamos la alerta arriba del todo
-          container.prepend(card);
+          const user = data.nickname || data.username || 'Usuario';
+          const avatarUrl = data.profilePictureUrl || 'https://www.tiktok.com/favicon.ico';
+
+          // Estructura idéntica al chat de TikTok Live
+          row.innerHTML = \`
+            <img class="avatar" src="\${avatarUrl}" onerror="this.src='https://abs.twimg.com/sticky/default_profile_images/default_profile_normal.png'" />
+            <div class="content-box">
+              <div class="user-header">
+                <span class="username">\${user}</span>
+                <span class="badge">📌 Anclado</span>
+              </div>
+              <div class="message">Vouch</div>
+            </div>
+          \`;
+
+          container.appendChild(row);
+
+          // Mantener máximo 8 mensajes en pantalla
+          if (container.children.length > 8) {
+            container.removeChild(container.firstChild);
+          }
         });
       </script>
     </body>
@@ -85,23 +145,18 @@ app.get('/', (req, res) => {
   `);
 });
 
-// -------------------------------------------------------------
-// RUTA 2: El Webhook que recibe la información de TikFinity
-// -------------------------------------------------------------
+// 2. Endpoint del Webhook
 app.post('/', (req, res) => {
   const data = req.body;
   console.log('Webhook recibida:', data);
 
-  // Emitimos los datos en tiempo real a todas las pantallas conectadas
   io.emit('tikfinity-event', data);
 
-  res.status(200).send({ status: 'ok' });
+  res.status(200).json({ status: 'ok' });
 });
 
-// -------------------------------------------------------------
-// PUERTO Y ARRANQUE DEL SERVIDOR
-// -------------------------------------------------------------
+// 3. Iniciar Servidor
 const PORT = process.env.PORT || 10000;
 server.listen(PORT, () => {
-  console.log(`Servidor escuchando en el puerto ${PORT}`);
+  console.log(`Servidor escuchando en puerto ${PORT}`);
 });
